@@ -23,7 +23,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.MapGet("/api/health", () => new { Message = "Hello World!" });
+app.MapGet("/api/health", () => new { Message = "Welcome to 2021!!!!!!!!!!!!!!!!!!!!" });
 app.MapControllers();
 
 app.Run();
