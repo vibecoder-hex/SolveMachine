@@ -24,16 +24,6 @@ namespace SolveMachine.Repositories
         {
             var user = await _dbContext.Users
                 .Where(u => u.Username == username)
-                .Select(u => new User
-                {
-                    Id = u.Id,
-                    Username = u.Username,
-                    FirstName = u.FirstName,
-                    LastName = u.LastName,
-                    Email = u.Email,
-                    Phone = u.Phone,
-                    CreatedAt = u.CreatedAt
-                })
                 .FirstOrDefaultAsync();
 
             if (user == null) 

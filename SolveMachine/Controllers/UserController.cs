@@ -64,7 +64,9 @@ namespace SolveMachine.Controllers
             if (!userResult.IsSuccess)
                 return Unauthorized(new {Error =  userResult.ErrorMessage});
 
-            return Ok(userResult.SelectedUser);
+            var user = userResult.SelectedUser;
+            var profile = new ProfileDto(user.Username, user.FirstName, user.LastName, user.Email, user.Phone, user.CreatedAt);
+            return Ok(profile);
         }
     }
 }

@@ -12,6 +12,15 @@ namespace SolveMachine.Models
         [EmailAddress(ErrorMessage = "Invalid email format")] string Email,
         [Phone(ErrorMessage = "Invalid phone format")] string Phone);
 
+    public record ProfileDto(
+        string Username,
+        string FirstName,
+        string LastName,
+        string Email,
+        string Phone,
+        DateOnly CreatedAt
+    );
+
     public record ProblemCreationDto(
         string Name,
         string Description,

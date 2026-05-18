@@ -10,13 +10,13 @@ namespace SolveMachine.Controllers
     [ApiController]
     public class ProblemController : ControllerBase
     {
-        private readonly ISelectionProblemRepository _selectionProblemRepository;
-        private readonly IModificationProblemRepository _modificationProblemRepository;
+        private readonly ISelectionProblemRepository _selectionRepository;
+        private readonly IModificationProblemRepository _modificationRepository;
 
-        public ProblemController(ISelectionProblemRepository selectionProblemRepository, IModificationProblemRepository modificationProblemRepository)
+        public ProblemController(ISelectionProblemRepository selectionRepository, IModificationProblemRepository modificationRepository)
         {
-            _selectionProblemRepository = selectionProblemRepository;
-            _modificationProblemRepository = modificationProblemRepository;
+            _selectionRepository = selectionRepository;
+            _modificationRepository = modificationRepository;
         }
 
         [Authorize]
@@ -25,7 +25,7 @@ namespace SolveMachine.Controllers
         {
             var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            var creationProblemResult = await _modificationProblemRepository.CreateProblem(
+            var creationProblemResult = await _modificationRepository.CreateProblem(
                 dto.Name,
                 dto.Description,
                 dto.DeadLineDate,
@@ -47,7 +47,7 @@ namespace SolveMachine.Controllers
         public async Task<IActionResult> Get()
         {
             var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var problemGettingResult = await _selectionProblemRepository.GetAllProblems(int.Parse(userIdClaim));
+            var problemGettingResult = await _selectionRepository.GetAllProblems(int.Parse(userIdClaim));
 
             if (!problemGettingResult.IsSuccess)
                 return BadRequest(new { Error = problemGettingResult.ErrorMessage });
@@ -60,7 +60,7 @@ namespace SolveMachine.Controllers
         public async Task<IActionResult> GetByName(string name)
         {
             var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var problemGettingResult = await _selectionProblemRepository.GetProblemByName(name, int.Parse(userIdClaim));
+            var problemGettingResult = await _selectionRepository.GetProblemByName(name, int.Parse(userIdClaim));
 
             if (!problemGettingResult.IsSuccess)
                 return BadRequest(new { Error = problemGettingResult.ErrorMessage });
@@ -73,7 +73,7 @@ namespace SolveMachine.Controllers
         public async Task<IActionResult> FilteredGet([FromBody] ProblemFilteringDto dto)
         {
             var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var problemGettingResult = await _selectionProblemRepository.GetFilteredProblems(
+            var problemGettingResult = await _selectionRepository.GetFilteredProblems(
                 int.Parse(userIdClaim),
                 dto.DeadLineDate,
                 dto.CreationDate,
@@ -90,7 +90,7 @@ namespace SolveMachine.Controllers
         public async Task<IActionResult> Update(int id, [FromBody] ProblemUpdatingDto dto)
         {
             var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var problemUpdatingResult = await _modificationProblemRepository.UpdateProblem(
+            var problemUpdatingResult = await _modificationRepository.UpdateProblem(
                 int.Parse(userIdClaim),
                 id,
                 dto.Name,
@@ -111,7 +111,7 @@ namespace SolveMachine.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var problemDeletingResult = await _modificationProblemRepository.DeleteProblem(int.Parse(userIdClaim), id);
+            var problemDeletingResult = await _modificationRepository.DeleteProblem(int.Parse(userIdClaim), id);
 
             if (!problemDeletingResult.IsSuccess)
                 return BadRequest(new { Error = problemDeletingResult.ErrorMessage });
