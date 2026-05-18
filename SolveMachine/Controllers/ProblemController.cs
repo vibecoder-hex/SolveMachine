@@ -10,11 +10,13 @@ namespace SolveMachine.Controllers
     [ApiController]
     public class ProblemController : ControllerBase
     {
-        private readonly IProblemRepository _problemRepository;
+        private readonly ISelectionProblemRepository _selectionProblemRepository;
+        private readonly IModificationProblemRepository _modificationProblemRepository;
 
-        public ProblemController(IProblemRepository problemRepository)
+        public ProblemController(ISelectionProblemRepository selectionProblemRepository, IModificationProblemRepository modificationProblemRepository)
         {
-            _problemRepository = problemRepository;
+            _selectionProblemRepository = selectionProblemRepository;
+            _modificationProblemRepository = modificationProblemRepository;
         }
 
         [Authorize]
@@ -23,7 +25,7 @@ namespace SolveMachine.Controllers
         {
             var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            var creationProblemResult = await _problemRepository.CreateProblem(
+            var creationProblemResult = await _modificationProblemRepository.CreateProblem(
                 dto.Name,
                 dto.Description,
                 dto.DeadLineDate,
@@ -45,7 +47,7 @@ namespace SolveMachine.Controllers
         public async Task<IActionResult> Get()
         {
             var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var problemGettingResult = await _problemRepository.GetAllProblems(int.Parse(userIdClaim));
+            var problemGettingResult = await _selectionProblemRepository.GetAllProblems(int.Parse(userIdClaim));
 
             if (!problemGettingResult.IsSuccess)
                 return BadRequest(new { Error = problemGettingResult.ErrorMessage });
@@ -54,11 +56,24 @@ namespace SolveMachine.Controllers
         }
 
         [Authorize]
+        [HttpGet("{name}")]
+        public async Task<IActionResult> GetByName(string name)
+        {
+            var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var problemGettingResult = await _selectionProblemRepository.GetProblemByName(name, int.Parse(userIdClaim));
+
+            if (!problemGettingResult.IsSuccess)
+                return BadRequest(new { Error = problemGettingResult.ErrorMessage });
+
+            return Ok(problemGettingResult.Problem);
+        }
+
+        [Authorize]
         [HttpPost("filtered")]
         public async Task<IActionResult> FilteredGet([FromBody] ProblemFilteringDto dto)
         {
             var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var problemGettingResult = await _problemRepository.GetFilteredProblems(
+            var problemGettingResult = await _selectionProblemRepository.GetFilteredProblems(
                 int.Parse(userIdClaim),
                 dto.DeadLineDate,
                 dto.CreationDate,
@@ -68,6 +83,40 @@ namespace SolveMachine.Controllers
                 return BadRequest(new { Error = problemGettingResult.ErrorMessage });
 
             return Ok(new { Problems = problemGettingResult.Problems });
+        }
+
+        [Authorize]
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] ProblemUpdatingDto dto)
+        {
+            var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var problemUpdatingResult = await _modificationProblemRepository.UpdateProblem(
+                int.Parse(userIdClaim),
+                id,
+                dto.Name,
+                dto.Description,
+                dto.DeadLineDate,
+                dto.XCoord,
+                dto.YCoord,
+                dto.Priority,
+                dto.Status);
+            if (!problemUpdatingResult.IsSuccess)
+                return BadRequest(new { Error = problemUpdatingResult.ErrorMessage });
+
+            return Ok(problemUpdatingResult.Problem);
+        }
+
+        [Authorize]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var problemDeletingResult = await _modificationProblemRepository.DeleteProblem(int.Parse(userIdClaim), id);
+
+            if (!problemDeletingResult.IsSuccess)
+                return BadRequest(new { Error = problemDeletingResult.ErrorMessage });
+
+            return Ok(new { Message = "Problem deleted successfully" });
         }
     }
 }

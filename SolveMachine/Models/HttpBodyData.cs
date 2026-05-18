@@ -12,8 +12,6 @@ namespace SolveMachine.Models
         [EmailAddress(ErrorMessage = "Invalid email format")] string Email,
         [Phone(ErrorMessage = "Invalid phone format")] string Phone);
 
-    public record ProfileDto(string Username, string FirstName, string LastName, string Email, string Phone);
-
     public record ProblemCreationDto(
         string Name,
         string Description,
@@ -25,4 +23,5 @@ namespace SolveMachine.Models
     );
 
     public record ProblemFilteringDto(string name, DateOnly? DeadLineDate, ProblemPriority? Priority, ProblemStatus? Status, DateOnly? CreationDate);
+    public record ProblemUpdatingDto(string Name, string? Description, DateTime? DeadLineDate, int? XCoord, int? YCoord, ProblemPriority? Priority, ProblemStatus? Status);
 }

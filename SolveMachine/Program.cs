@@ -59,7 +59,8 @@ builder.Services.AddScoped<ILoginService, LoginService>();
 builder.Services.AddScoped<IRegistrationService, RegistrationService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
-builder.Services.AddScoped<IProblemRepository, ProblemRepository>();
+builder.Services.AddScoped<ISelectionProblemRepository, SelectionProblemRepository>();
+builder.Services.AddScoped<IModificationProblemRepository, ModificationProblemRepository>();
 
 var app = builder.Build();
 

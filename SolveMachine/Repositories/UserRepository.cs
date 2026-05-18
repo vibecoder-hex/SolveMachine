@@ -23,7 +23,18 @@ namespace SolveMachine.Repositories
         public async Task<UserResult> GetUserByName(string username)
         {
             var user = await _dbContext.Users
-                .FirstOrDefaultAsync(u => u.Username == username);
+                .Where(u => u.Username == username)
+                .Select(u => new User
+                {
+                    Id = u.Id,
+                    Username = u.Username,
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    Email = u.Email,
+                    Phone = u.Phone,
+                    CreatedAt = u.CreatedAt
+                })
+                .FirstOrDefaultAsync();
 
             if (user == null) 
                 return new UserResult { IsSuccess = false, ErrorMessage = $"User by {username} does not exists"};
