@@ -61,7 +61,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<ISelectionProblemRepository, SelectionProblemRepository>();
 builder.Services.AddScoped<IModificationProblemRepository, ModificationProblemRepository>();
-builder.Services.AddHostedService<ProblemBackgroundService>();
+builder.Services.AddHostedService<TimeMachineBackgroundService>();
 
 var app = builder.Build();
 

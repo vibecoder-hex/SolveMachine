@@ -8,6 +8,7 @@ namespace SolveMachine.Repositories
          Task<ProblemResult> GetProblemByName(string name, int userId);
          Task<ProblemResult> GetAllProblems(int userId);
          Task<ProblemResult> GetFilteredProblems(int userId, DateOnly? deadLineDate, DateOnly? creationDate, ProblemPriority? priority, ProblemStatus? status);
+         Task<ProblemResult> GetExpiredProblemsForAllUsers();
     }
 
     public interface IModificationProblemRepository
@@ -22,6 +23,7 @@ namespace SolveMachine.Repositories
             int userId);
         Task<ProblemResult> UpdateProblem(int userId, int problemId, string? name, string? description, DateTime? deadlineDate, int? xCoord, int? yCoord, ProblemPriority? priority, ProblemStatus? status);
         Task<ProblemResult> DeleteProblem(int userId, int problemId);
+        Task<ProblemResult> SetProblemAsCompleted(int problemId);
     }
 
     public class SelectionProblemRepository : ISelectionProblemRepository
@@ -111,6 +113,14 @@ namespace SolveMachine.Repositories
                 .ToListAsync();
             return new ProblemResult { IsSuccess = true, Problems = queryResult };
         }
+
+        public async Task<ProblemResult> GetExpiredProblemsForAllUsers()
+        {
+            List<Problem> expiredProblems = await _dbContext.Problems
+                .Where(p => p.Status != ProblemStatus.Completed && p.CreatedAt <= p.DeadlineDate && !p.IsCompleted)
+                .ToListAsync();
+            return new ProblemResult { IsSuccess = true, Problems = expiredProblems };
+        }
     }
 
     public class ModificationProblemRepository : IModificationProblemRepository
@@ -188,6 +198,20 @@ namespace SolveMachine.Repositories
             _dbContext.Problems.Remove(problem);
             await _dbContext.SaveChangesAsync();
             return new ProblemResult { IsSuccess = true };
+        }
+
+        public async Task<ProblemResult> SetProblemAsCompleted(int problemId)
+        {
+            var problem = await _dbContext.Problems
+                .Where(e => e.Id == problemId)
+                .FirstOrDefaultAsync();
+            if (problem == null)
+                return new ProblemResult { IsSuccess = false, ErrorMessage = $"Problem with id {problemId} does not exists" };
+
+            problem.Status = ProblemStatus.Completed;
+            problem.IsCompleted = true;
+            await _dbContext.SaveChangesAsync();
+            return new ProblemResult { IsSuccess = true, Problem = problem };
         }
     }
 }
