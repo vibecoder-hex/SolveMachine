@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using SolveMachine.Models;
 using SolveMachine.Repositories;
 using SolveMachine.Services;
 using System.Text;
@@ -42,11 +45,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+string dbConnectionString = builder.Configuration["DatabaseConnection:ConnectionString"];
+builder.Services.AddDbContext<SolveMachineContext>(options => options
+    .UseNpgsql(dbConnectionString, o =>
+    {
+        o.MapEnum<UserRole>("user_role");
+        o.MapEnum<ProblemPriority>("problem_priority");
+        o.MapEnum<ProblemStatus>("problem_status");
+    }));
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ILoginService, LoginService>();
 builder.Services.AddScoped<IRegistrationService, RegistrationService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddScoped<IProblemRepository, ProblemRepository>();
 
 var app = builder.Build();
 

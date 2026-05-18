@@ -1,41 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using SolveMachine.Models;
 
 namespace SolveMachine.Repositories;
 
 public partial class SolveMachineContext : DbContext
 {
-    public SolveMachineContext()
-    {
-    }
-
     public SolveMachineContext(DbContextOptions<SolveMachineContext> options)
         : base(options)
     {
     }
 
-    public virtual DbSet<Task> Tasks { get; set; }
-
+    public virtual DbSet<Problem> Problems { get; set; }
     public virtual DbSet<User> Users { get; set; }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseNpgsql("Host=localhost;Database=solveMachine;Username=vibecoderhex;Password=azsxdcQ1!");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder
-            .HasPostgresEnum("task_priority", new[] { "high", "medium", "low" })
-            .HasPostgresEnum("task_status", new[] { "in_process", "completed", "did_not_start" })
-            .HasPostgresEnum("user_role", new[] { "admin", "user", "manager" });
-
-        modelBuilder.Entity<Task>(entity =>
+        modelBuilder.Entity<Problem>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("Task_pkey");
 
-            entity.ToTable("Task");
+            entity.ToTable("Problem");
+
+            entity.HasIndex(e => e.UserId, "idx_problem_user_id");
 
             entity.HasIndex(e => e.UserId, "idx_task_userid");
 
@@ -53,10 +39,15 @@ public partial class SolveMachineContext : DbContext
                 .HasColumnName("name");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
-            entity.HasOne(d => d.User).WithMany(p => p.Tasks)
+            entity.HasOne(d => d.User).WithMany(p => p.Problems)
                 .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("Task_user_id_fkey");
+            entity.Property(e => e.Status)
+                .HasColumnType("problem_status")
+                .HasColumnName("status");
+            entity.Property(e => e.Priority)
+                .HasColumnName("priority")
+                .HasColumnType("problem_priority");
         });
 
         modelBuilder.Entity<User>(entity =>
@@ -85,10 +76,12 @@ public partial class SolveMachineContext : DbContext
             entity.Property(e => e.Username)
                 .HasMaxLength(40)
                 .HasColumnName("username");
+            entity.Property(e => e.Role)
+                .HasColumnType("user_role")
+                .HasColumnName("role");
+            entity.Property(e => e.PasswordHash)
+                .HasMaxLength(256)
+                .HasColumnName("password_hash");
         });
-
-        OnModelCreatingPartial(modelBuilder);
     }
-
-    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }

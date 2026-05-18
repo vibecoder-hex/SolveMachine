@@ -1,0 +1,97 @@
+﻿using Microsoft.EntityFrameworkCore;
+using SolveMachine.Models;
+
+namespace SolveMachine.Repositories
+{
+    public interface IProblemRepository
+    {
+        Task<ProblemResult> CreateProblem(string name,
+            string description,
+            DateTime deadlineDate,
+            int xCoord,
+            int yCoord,
+            ProblemPriority priority,
+            ProblemStatus status,
+            int userId);
+        Task<ProblemResult> GetProblemByName(string name, int userId);
+        Task<ProblemResult> GetAllProblems(int userId);
+        Task<ProblemResult> GetFilteredProblems(int userId, DateOnly? deadLineDate, DateOnly? creationDate, ProblemPriority? priority, ProblemStatus? status);
+    }
+
+    public class ProblemRepository : IProblemRepository
+    {
+        private readonly SolveMachineContext _dbContext;
+        
+        public ProblemRepository(SolveMachineContext dbContext)
+        {
+            _dbContext = dbContext;
+        }
+
+        public async Task<ProblemResult> CreateProblem(string name,
+            string description,
+            DateTime deadlineDate,
+            int xCoord,
+            int yCoord,
+            ProblemPriority priority,
+            ProblemStatus status,
+            int userId)
+        {
+            var problem = new Problem
+            {
+                Name = name,
+                Description = description,
+                CreatedAt = DateOnly.FromDateTime(DateTime.UtcNow),
+                DeadlineDate = DateOnly.FromDateTime(deadlineDate),
+                DisplayXcoord = xCoord,
+                DisplayYcoord = yCoord,
+                Priority = priority,
+                Status = status,
+                UserId = userId
+            };
+
+            _dbContext.Problems.Add(problem);
+            await _dbContext.SaveChangesAsync();
+            return new ProblemResult { IsSuccess = true, Problem = problem };
+        }
+
+        public async Task<ProblemResult> GetProblemByName(string name, int userId)
+        {
+            var problem = await _dbContext.Problems.FirstOrDefaultAsync(e => e.Name == name && e.UserId == userId);
+
+            if (problem == null)
+                return new ProblemResult { IsSuccess = false, ErrorMessage = $"Problem by {name} does not exists"};
+
+            return new ProblemResult { IsSuccess = true, Problem = problem };
+        }
+
+        public async Task<ProblemResult> GetAllProblems(int userId)
+        {
+            List<Problem> problems = await _dbContext.Problems
+                .Where(e => e.UserId == userId)
+                .ToListAsync();
+            return new ProblemResult { IsSuccess = true, Problems = problems };
+        }
+
+        public async Task<ProblemResult> GetFilteredProblems(int userId, DateOnly? deadLineDate, DateOnly? creationDate, ProblemPriority? priority, ProblemStatus? status)
+        {
+            IQueryable<Problem> query = _dbContext.Problems.Where(e => e.UserId == userId);
+
+            if (deadLineDate.HasValue)
+                query = query.Where(e => e.DeadlineDate == deadLineDate);
+
+            if (creationDate.HasValue)
+                query = query.Where(e => e.CreatedAt == creationDate);
+
+            if (priority.HasValue)
+                query = query.Where(e => e.Priority == priority);
+
+            if (status.HasValue)
+                query = query.Where(e => e.Status == status);
+
+            List<Problem> queryResult = await query
+                .OrderByDescending(e => e.Id)
+                .ToListAsync();
+            return new ProblemResult { IsSuccess = true, Problems = queryResult  };
+        }
+    }
+}
