@@ -31,6 +31,6 @@ namespace SolveMachine.Models
         ProblemStatus Status
     );
 
-    public record ProblemFilteringDto(string name, DateOnly? DeadLineDate, ProblemPriority? Priority, ProblemStatus? Status, DateOnly? CreationDate);
-    public record ProblemUpdatingDto(string Name, string? Description, DateTime? DeadLineDate, int? XCoord, int? YCoord, ProblemPriority? Priority, ProblemStatus? Status);
+    public record ProblemFilteringDto(string Name, DateOnly? DeadLineDate, ProblemPriority? Priority, ProblemStatus? Status, DateOnly? CreationDate);
+    public record ProblemUpdatingDto(string? Name, string? Description, DateTime? DeadLineDate, int? XCoord, int? YCoord, ProblemPriority? Priority, ProblemStatus? Status);
 }

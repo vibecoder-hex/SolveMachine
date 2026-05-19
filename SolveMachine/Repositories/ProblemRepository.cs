@@ -8,7 +8,7 @@ namespace SolveMachine.Repositories
          Task<ProblemResult> GetProblemByName(string name, int userId);
          Task<ProblemResult> GetAllProblems(int userId);
          Task<ProblemResult> GetFilteredProblems(int userId, DateOnly? deadLineDate, DateOnly? creationDate, ProblemPriority? priority, ProblemStatus? status);
-         Task<ProblemResult> GetExpiredProblemsForAllUsers();
+         Task<ProblemResult> GetCandidatesForComplete();
     }
 
     public interface IModificationProblemRepository
@@ -39,18 +39,6 @@ namespace SolveMachine.Repositories
         {
             var problem = await _dbContext.Problems
                    .Where(p => p.Name == name && p.UserId == userId)
-                   .Select(p => new Problem
-                   {
-                       Id = p.Id,
-                       Name = p.Name,
-                       Description = p.Description,
-                       CreatedAt = p.CreatedAt,
-                       DeadlineDate = p.DeadlineDate,
-                       DisplayXcoord = p.DisplayXcoord,
-                       DisplayYcoord = p.DisplayYcoord,
-                       Priority = p.Priority,
-                       Status = p.Status
-                   })
                    .FirstOrDefaultAsync();
 
             if (problem == null)
@@ -63,18 +51,6 @@ namespace SolveMachine.Repositories
         {
             List<Problem> problems = await _dbContext.Problems
                 .Where(e => e.UserId == userId)
-                .Select(p => new Problem
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Description = p.Description,
-                    CreatedAt = p.CreatedAt,
-                    DeadlineDate = p.DeadlineDate,
-                    DisplayXcoord = p.DisplayXcoord,
-                    DisplayYcoord = p.DisplayYcoord,
-                    Priority = p.Priority,
-                    Status = p.Status
-                })
                 .ToListAsync();
             return new ProblemResult { IsSuccess = true, Problems = problems };
         }
@@ -97,27 +73,17 @@ namespace SolveMachine.Repositories
                 query = query.Where(e => e.Status == status);
 
             List<Problem> queryResult = await query
-                .Select(p => new Problem
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Description = p.Description,
-                    CreatedAt = p.CreatedAt,
-                    DeadlineDate = p.DeadlineDate,
-                    DisplayXcoord = p.DisplayXcoord,
-                    DisplayYcoord = p.DisplayYcoord,
-                    Priority = p.Priority,
-                    Status = p.Status
-                })
                 .OrderByDescending(e => e.Id)
                 .ToListAsync();
             return new ProblemResult { IsSuccess = true, Problems = queryResult };
         }
 
-        public async Task<ProblemResult> GetExpiredProblemsForAllUsers()
+        public async Task<ProblemResult> GetCandidatesForComplete()
         {
             List<Problem> expiredProblems = await _dbContext.Problems
-                .Where(p => p.Status != ProblemStatus.Completed && p.CreatedAt <= p.DeadlineDate && !p.IsCompleted)
+                .Where(p => p.Status != ProblemStatus.Completed 
+                    &&  p.DeadlineDate < DateOnly.FromDateTime(DateTime.UtcNow) 
+                    && !p.IsCompleted)
                 .ToListAsync();
             return new ProblemResult { IsSuccess = true, Problems = expiredProblems };
         }

@@ -23,22 +23,24 @@ namespace SolveMachine.Services
                     var selectionRepository = scope.ServiceProvider.GetRequiredService<ISelectionProblemRepository>();
                     var modificationRepository = scope.ServiceProvider.GetRequiredService<IModificationProblemRepository>();
 
-                    var expriredProblemsResult = await selectionRepository.GetExpiredProblemsForAllUsers();
-                    if (!expriredProblemsResult.IsSuccess)
-                        _logger.LogError($"Problem handling error by {expriredProblemsResult.ErrorMessage}");
-
-                    List<Problem> expiredProblems = expriredProblemsResult.Problems;
-                    foreach (var problem in expiredProblems)
+                    var expriredProblemsResult = await selectionRepository.GetCandidatesForComplete();
+                    if (expriredProblemsResult.IsSuccess)
                     {
-                        if (DateOnly.FromDateTime(DateTime.UtcNow) > problem.DeadlineDate)
+                        List<Problem> expiredProblems = expriredProblemsResult.Problems;
+                        _logger.LogInformation(DateOnly.FromDateTime(DateTime.UtcNow).ToString());
+                        _logger.LogInformation(expiredProblems.Count.ToString());
+                        foreach (var problem in expiredProblems)
                         {
-                            _logger.LogInformation($"Problem by id {problem.Id} has been completed");
-                            await modificationRepository.SetProblemAsCompleted(problem.Id);
+                            _logger.LogInformation($"Problem by id {problem.Id} has deadline date {problem.DeadlineDate}");
+                            if (DateOnly.FromDateTime(DateTime.UtcNow) > problem.DeadlineDate)
+                            {
+                                _logger.LogInformation($"Problem by id {problem.Id} has been completed");
+                                await modificationRepository.SetProblemAsCompleted(problem.Id);
+                            }
                         }
                     }
-
                 }
-                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
             }
         }
     }
