@@ -60,11 +60,10 @@ namespace SolveMachine.Controllers
             if (string.IsNullOrEmpty(username))
                 return Unauthorized(new { Error = $"username {username} does not exists in http context" });
 
-            var userResult = await _userRepository.GetUserByName(username);
-            if (!userResult.IsSuccess)
-                return Unauthorized(new {Error =  userResult.ErrorMessage});
-
-            var user = userResult.SelectedUser;
+            var user = await _userRepository.GetUserByName(username);
+            if (user == null)
+                return Unauthorized(new {Error = $"User by username {username} does not exists"});
+            
             var profile = new ProfileDto(user.Username, user.FirstName, user.LastName, user.Email, user.Phone, user.CreatedAt);
             return Ok(profile);
         }

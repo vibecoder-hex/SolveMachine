@@ -3,4 +3,5 @@
     <File Path="compose.yaml" />
   </Folder>
   <Project Path="SolveMachine/SolveMachine.csproj" />
+  <Project Path="SolveMachineTest/SolveMachineTest.csproj" />
 </Solution>

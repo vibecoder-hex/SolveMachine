@@ -40,11 +40,10 @@ namespace SolveMachine.Services
 
         public async Task<LoginResult> Login(string username, string password)
         {
-            var userResult = await _userRepository.GetUserByName(username);
-            if (!userResult.IsSuccess)
-                return new LoginResult { IsSuccess = false, ErrorMessage = userResult.ErrorMessage };
-
-            var user = userResult.SelectedUser;
+            var user = await _userRepository.GetUserByName(username);
+            if (user == null)
+                return new LoginResult { IsSuccess = false, ErrorMessage = $"User by {username} not found" };
+            
             var verifyPasswordResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, password);
             if (verifyPasswordResult == PasswordVerificationResult.Failed)
                 return new LoginResult { IsSuccess = false, ErrorMessage = "Incorrect password" };
@@ -107,16 +106,14 @@ namespace SolveMachine.Services
             if (!isPassowordsVaild(password, password))
                 return new RegistrationResult { IsSuccess = false, ErrorMessage = "Password is incorrect"};
 
-            var existingUserResult = await _userRepository.GetUserByName(username);
-            if (existingUserResult.IsSuccess)
+            var existingUser = await _userRepository.GetUserByName(username);
+            if (existingUser != null)
                 return new RegistrationResult { IsSuccess = false, ErrorMessage = $"User by {username} is exists" };
 
             string passwordHash = _passwordHasher.HashPassword(null, password);
             var userCreationResult = await _userRepository.CreateUser(username, passwordHash, firstName, lastName, email, phone);
-            if (!userCreationResult.IsSuccess) 
-                return new RegistrationResult { IsSuccess = false, ErrorMessage = userCreationResult.ErrorMessage };
 
-            string tokenString = _tokenService.GetJsonWebTokenString(userCreationResult.SelectedUser);
+            string tokenString = _tokenService.GetJsonWebTokenString(userCreationResult);
             return new RegistrationResult { IsSuccess = true, TokenString = tokenString };
         }
     }

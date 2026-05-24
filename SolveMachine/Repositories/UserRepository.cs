@@ -5,8 +5,8 @@ namespace SolveMachine.Repositories
 {
     public interface IUserRepository
     {
-        public Task<UserResult> GetUserByName(string username);
-        public Task<UserResult> CreateUser(string username, string passwordHash, string firstName, string lastName, string email, string phone);
+        public Task<User?> GetUserByName(string username);
+        public Task<User?> CreateUser(string username, string passwordHash, string firstName, string lastName, string email, string phone);
     }
 
     public class UserRepository : IUserRepository
@@ -20,35 +20,40 @@ namespace SolveMachine.Repositories
             _dbContext = dbContext;
         }
 
-        public async Task<UserResult> GetUserByName(string username)
+        public async Task<User?> GetUserByName(string username)
         {
             var user = await _dbContext.Users
                 .Where(u => u.Username == username)
                 .FirstOrDefaultAsync();
 
-            if (user == null) 
-                return new UserResult { IsSuccess = false, ErrorMessage = $"User by {username} does not exists"};
-
             _logger.LogInformation($"Successfull selected {user.Username}");
-            return new UserResult { IsSuccess = true, SelectedUser = user };
+            return user;
         }
 
-        public async Task<UserResult> CreateUser(string username, string passwordHash, string firstName, string lastName, string email, string phone)
+        public async Task<User?> CreateUser(string username, string passwordHash, string firstName, string lastName, string email, string phone)
         {
-             var user = new User
-             {
-                 Username = username,
-                 PasswordHash = passwordHash,
-                 FirstName = firstName,
-                 LastName = lastName,
-                 Email = email,
-                 Phone = phone,
-                 CreatedAt = DateOnly.FromDateTime(DateTime.Now),
-                 IsActive = true
-              };
-              _dbContext.Users.Add(user);
-              await _dbContext.SaveChangesAsync();
-              return new UserResult { IsSuccess = true, SelectedUser = user };
+            try
+            {
+                var user = new User
+                {
+                    Username = username,
+                    PasswordHash = passwordHash,
+                    FirstName = firstName,
+                    LastName = lastName,
+                    Email = email,
+                    Phone = phone,
+                    CreatedAt = DateOnly.FromDateTime(DateTime.Now),
+                    IsActive = true
+                };
+                _dbContext.Users.Add(user);
+                await _dbContext.SaveChangesAsync();
+                return user;
+            }
+            catch (DbUpdateException)
+            {
+                _logger.LogError($"Failed to create user {username}");
+                throw;
+            }
         }
     }
 }

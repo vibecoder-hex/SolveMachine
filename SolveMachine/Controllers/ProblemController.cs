@@ -24,8 +24,11 @@ namespace SolveMachine.Controllers
         public async Task<IActionResult> Post([FromBody] ProblemCreationDto dto)
         {
             var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var existingProblem = await _selectionRepository.GetProblemByName(dto.Name, int.Parse(userIdClaim));
+            if (existingProblem != null)
+                return BadRequest(new { Error = "Problem already exists" });
 
-            var creationProblemResult = await _modificationRepository.CreateProblem(
+            await _modificationRepository.CreateProblem(
                 dto.Name,
                 dto.Description,
                 dto.DeadLineDate,
@@ -36,10 +39,7 @@ namespace SolveMachine.Controllers
                 int.Parse(userIdClaim)
             );
 
-            if (!creationProblemResult.IsSuccess)
-                return BadRequest(new { Error = creationProblemResult.ErrorMessage });
-
-            return Ok(creationProblemResult.Problem);
+            return Ok(new  { Message = "Problem created successfully" });
         }
 
         [Authorize]
@@ -47,12 +47,12 @@ namespace SolveMachine.Controllers
         public async Task<IActionResult> Get()
         {
             var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var problemGettingResult = await _selectionRepository.GetAllProblems(int.Parse(userIdClaim));
+            var problems = await _selectionRepository.GetAllProblems(int.Parse(userIdClaim));
 
-            if (!problemGettingResult.IsSuccess)
-                return BadRequest(new { Error = problemGettingResult.ErrorMessage });
+            if (problems.Count == 0)
+                return BadRequest(new { Error = "Problems list is empty"});
 
-            return Ok(new { Problems = problemGettingResult.Problems });
+            return Ok(new { Problems = problems});
         }
 
         [Authorize]
@@ -60,12 +60,12 @@ namespace SolveMachine.Controllers
         public async Task<IActionResult> GetByName(string name)
         {
             var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var problemGettingResult = await _selectionRepository.GetProblemByName(name, int.Parse(userIdClaim));
+            var problem = await _selectionRepository.GetProblemByName(name, int.Parse(userIdClaim));
 
-            if (!problemGettingResult.IsSuccess)
-                return BadRequest(new { Error = problemGettingResult.ErrorMessage });
+            if (problem == null)
+                return BadRequest(new  { Error = "Problem not found" });
 
-            return Ok(problemGettingResult.Problem);
+            return Ok(problem);
         }
 
         [Authorize]
@@ -73,16 +73,17 @@ namespace SolveMachine.Controllers
         public async Task<IActionResult> FilteredGet([FromBody] ProblemFilteringDto dto)
         {
             var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var problemGettingResult = await _selectionRepository.GetFilteredProblems(
+            var problems = await _selectionRepository.GetFilteredProblems(
                 int.Parse(userIdClaim),
                 dto.DeadLineDate,
                 dto.CreationDate,
                 dto.Priority,
                 dto.Status);
-            if (!problemGettingResult.IsSuccess)
-                return BadRequest(new { Error = problemGettingResult.ErrorMessage });
+            
+            if (problems.Count == 0)
+                return BadRequest(new  { Error = "Problems not found" });
 
-            return Ok(new { Problems = problemGettingResult.Problems });
+            return Ok(new { Problems = problems });
         }
 
         [Authorize]
@@ -90,9 +91,11 @@ namespace SolveMachine.Controllers
         public async Task<IActionResult> Update(int id, [FromBody] ProblemUpdatingDto dto)
         {
             var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var problemUpdatingResult = await _modificationRepository.UpdateProblem(
-                int.Parse(userIdClaim),
-                id,
+            var existingProblem = await _selectionRepository.GetProblemByName(dto.Name, int.Parse(userIdClaim));
+            if (existingProblem == null)
+                return BadRequest(new { Error = "Problem not found" });
+            await _modificationRepository.UpdateProblem(
+                existingProblem,
                 dto.Name,
                 dto.Description,
                 dto.DeadLineDate,
@@ -100,10 +103,7 @@ namespace SolveMachine.Controllers
                 dto.YCoord,
                 dto.Priority,
                 dto.Status);
-            if (!problemUpdatingResult.IsSuccess)
-                return BadRequest(new { Error = problemUpdatingResult.ErrorMessage });
-
-            return Ok(problemUpdatingResult.Problem);
+            return Ok(new  { Message = "Problem updated successfully" });
         }
 
         [Authorize]
@@ -111,10 +111,11 @@ namespace SolveMachine.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var problemDeletingResult = await _modificationRepository.DeleteProblem(int.Parse(userIdClaim), id);
+            var existingProblem = await _selectionRepository.GetProblem(id, int.Parse(userIdClaim));
+            if  (existingProblem == null)
+                return BadRequest(new { Error = "Problem not found" });
 
-            if (!problemDeletingResult.IsSuccess)
-                return BadRequest(new { Error = problemDeletingResult.ErrorMessage });
+            await _modificationRepository.DeleteProblem(existingProblem);
 
             return Ok(new { Message = "Problem deleted successfully" });
         }

@@ -5,15 +5,16 @@ namespace SolveMachine.Repositories
 {
     public interface ISelectionProblemRepository
     {
-         Task<ProblemResult> GetProblemByName(string name, int userId);
-         Task<ProblemResult> GetAllProblems(int userId);
-         Task<ProblemResult> GetFilteredProblems(int userId, DateOnly? deadLineDate, DateOnly? creationDate, ProblemPriority? priority, ProblemStatus? status);
-         Task<ProblemResult> GetCandidatesForComplete();
+         Task<Problem?> GetProblemByName(string name, int userId);
+         Task<Problem?> GetProblem(int userId, int problemId);
+         Task<List<Problem>> GetAllProblems(int userId);
+         Task<List<Problem>> GetFilteredProblems(int userId, DateOnly? deadLineDate, DateOnly? creationDate, ProblemPriority? priority, ProblemStatus? status);
+         Task<List<Problem>> GetCandidatesForComplete();
     }
 
     public interface IModificationProblemRepository
     {
-        Task<ProblemResult> CreateProblem(string name,
+        Task CreateProblem(string name,
             string description,
             DateTime deadlineDate,
             int xCoord,
@@ -21,9 +22,9 @@ namespace SolveMachine.Repositories
             ProblemPriority priority,
             ProblemStatus status,
             int userId);
-        Task<ProblemResult> UpdateProblem(int userId, int problemId, string? name, string? description, DateTime? deadlineDate, int? xCoord, int? yCoord, ProblemPriority? priority, ProblemStatus? status);
-        Task<ProblemResult> DeleteProblem(int userId, int problemId);
-        Task<ProblemResult> SetProblemAsCompleted(int problemId);
+        Task UpdateProblem(Problem? problem, string? name, string? description, DateTime? deadlineDate, int? xCoord, int? yCoord, ProblemPriority? priority, ProblemStatus? status);
+        Task DeleteProblem(Problem? problemToDelete);
+        Task SetProblemAsCompleted(Problem? problem);
     }
 
     public class SelectionProblemRepository : ISelectionProblemRepository
@@ -35,27 +36,32 @@ namespace SolveMachine.Repositories
             _dbContext = dbContext;
         }
 
-        public async Task<ProblemResult> GetProblemByName(string name, int userId)
+        public async Task<Problem?> GetProblem(int userId, int problemId)
+        {
+            var problem = await _dbContext.Problems
+                .Where(e => e.UserId == userId && e.Id == problemId)
+                .FirstOrDefaultAsync();
+            return problem;
+        }
+
+        public async Task<Problem?> GetProblemByName(string name, int userId)
         {
             var problem = await _dbContext.Problems
                    .Where(p => p.Name == name && p.UserId == userId)
                    .FirstOrDefaultAsync();
 
-            if (problem == null)
-                return new ProblemResult { IsSuccess = false, ErrorMessage = $"Problem by {name} does not exists"};
-
-            return new ProblemResult { IsSuccess = true, Problem = problem };
+            return problem;
         }
 
-        public async Task<ProblemResult> GetAllProblems(int userId)
+        public async Task<List<Problem>> GetAllProblems(int userId)
         {
             List<Problem> problems = await _dbContext.Problems
                 .Where(e => e.UserId == userId)
                 .ToListAsync();
-            return new ProblemResult { IsSuccess = true, Problems = problems };
+            return problems;
         }
 
-        public async Task<ProblemResult> GetFilteredProblems(int userId, DateOnly? deadLineDate, DateOnly? creationDate, ProblemPriority? priority, ProblemStatus? status)
+        public async Task<List<Problem>> GetFilteredProblems(int userId, DateOnly? deadLineDate, DateOnly? creationDate, ProblemPriority? priority, ProblemStatus? status)
         {
             IQueryable<Problem> query = _dbContext.Problems
                 .Where(e => e.UserId == userId);
@@ -75,17 +81,16 @@ namespace SolveMachine.Repositories
             List<Problem> queryResult = await query
                 .OrderByDescending(e => e.Id)
                 .ToListAsync();
-            return new ProblemResult { IsSuccess = true, Problems = queryResult };
+            return queryResult;
         }
 
-        public async Task<ProblemResult> GetCandidatesForComplete()
+        public async Task<List<Problem>> GetCandidatesForComplete()
         {
+            DateOnly today = DateOnly.FromDateTime(DateTime.UtcNow);
             List<Problem> expiredProblems = await _dbContext.Problems
-                .Where(p => p.Status != ProblemStatus.Completed 
-                    &&  p.DeadlineDate < DateOnly.FromDateTime(DateTime.UtcNow) 
-                    && !p.IsCompleted)
+                .Where(p => p.Status != ProblemStatus.Completed &&  today <= p.DeadlineDate)
                 .ToListAsync();
-            return new ProblemResult { IsSuccess = true, Problems = expiredProblems };
+            return expiredProblems;
         }
     }
 
@@ -98,7 +103,7 @@ namespace SolveMachine.Repositories
             _dbContext = dbContext;
         }
 
-        public async Task<ProblemResult> CreateProblem(string name,
+        public async Task CreateProblem(string name,
             string description,
             DateTime deadlineDate,
             int xCoord,
@@ -122,17 +127,10 @@ namespace SolveMachine.Repositories
 
             _dbContext.Problems.Add(problem);
             await _dbContext.SaveChangesAsync();
-            return new ProblemResult { IsSuccess = true, Problem = problem };
         }
 
-        public async Task<ProblemResult> UpdateProblem(int userId, int problemId, string? name, string? description, DateTime? deadlineDate, int? xCoord, int? yCoord, ProblemPriority? priority, ProblemStatus? status)
+        public async Task UpdateProblem(Problem? problem, string? name, string? description, DateTime? deadlineDate, int? xCoord, int? yCoord, ProblemPriority? priority, ProblemStatus? status)
         {
-            var problem = await _dbContext.Problems
-                .Where(p => p.Id == problemId && p.UserId == userId)
-                .FirstOrDefaultAsync();
-
-            if (problem == null)
-                return new ProblemResult { IsSuccess = false, ErrorMessage = $"Problem with id {problemId} does not exists" };
 
             if (!string.IsNullOrEmpty(name))
                 problem.Name = name;
@@ -150,34 +148,18 @@ namespace SolveMachine.Repositories
                 problem.Status = status.Value;
 
             await _dbContext.SaveChangesAsync();
-            return new ProblemResult { IsSuccess = true, Problem = problem };
         }
-        public async Task<ProblemResult> DeleteProblem(int userId, int problemId)
+        public async Task DeleteProblem(Problem? problemToDelete)
         {
-            var problem = await _dbContext.Problems
-                .Where(e => e.Id == problemId && e.UserId == userId)
-                .FirstOrDefaultAsync();
-
-            if (problem == null)
-                return new ProblemResult { IsSuccess = false, ErrorMessage = $"Problem with id {problemId} does not exists" };
-
-            _dbContext.Problems.Remove(problem);
+            _dbContext.Problems.Remove(problemToDelete);
             await _dbContext.SaveChangesAsync();
-            return new ProblemResult { IsSuccess = true };
         }
 
-        public async Task<ProblemResult> SetProblemAsCompleted(int problemId)
+        public async Task SetProblemAsCompleted(Problem? problem)
         {
-            var problem = await _dbContext.Problems
-                .Where(e => e.Id == problemId)
-                .FirstOrDefaultAsync();
-            if (problem == null)
-                return new ProblemResult { IsSuccess = false, ErrorMessage = $"Problem with id {problemId} does not exists" };
-
             problem.Status = ProblemStatus.Completed;
             problem.IsCompleted = true;
             await _dbContext.SaveChangesAsync();
-            return new ProblemResult { IsSuccess = true, Problem = problem };
         }
     }
 }
