@@ -28,14 +28,12 @@ namespace SolveMachine.Services
         private readonly IUserRepository _userRepository;
         private readonly IPasswordHasher<User> _passwordHasher;
         private readonly ITokenService _tokenService;
-        private readonly ILogger<LoginService> _logger;
 
-        public LoginService(IUserRepository userRepository, IPasswordHasher<User> passwordHasher, ITokenService tokenService, ILogger<LoginService> logger)
+        public LoginService(IUserRepository userRepository, IPasswordHasher<User> passwordHasher, ITokenService tokenService)
         {
             _userRepository = userRepository;
             _passwordHasher = passwordHasher;
             _tokenService = tokenService;
-            _logger = logger;
         }
 
         public async Task<LoginResult> Login(string username, string password)
@@ -88,14 +86,12 @@ namespace SolveMachine.Services
     {
         private readonly IUserRepository _userRepository;
         private readonly ITokenService _tokenService;
-        private readonly ILogger<RegistrationService> _logger;
         private readonly IPasswordHasher<User> _passwordHasher;
 
-        public RegistrationService(IUserRepository userRepository, ITokenService tokenService, ILogger<RegistrationService> logger, IPasswordHasher<User> passwordHasher)
+        public RegistrationService(IUserRepository userRepository, ITokenService tokenService, IPasswordHasher<User> passwordHasher)
         {
             _userRepository = userRepository;
             _tokenService = tokenService;
-            _logger = logger;
             _passwordHasher = passwordHasher;
         }
 
